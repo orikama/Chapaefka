@@ -5,23 +5,63 @@ using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-
+using Streamlabs = CSharpClient.StreamlabsSocket;
 
 namespace CSharpClient
 {
     public partial class MainForm : Form
     {
         private TTSClient _ttsClient = null;
+        private Streamlabs.StreamlabsClient _streamlabsClient = null;
 
         public MainForm()
         {
             InitializeComponent();
 
-            //Console.WriteLine(new Uri(host).AbsoluteUri);
-            
+            _streamlabsClient = new Streamlabs.StreamlabsClient();
+            _streamlabsClient.OnConnect += StreamlabsOnConnect;
+            _streamlabsClient.OnDisconnect += StreamlabsOnDisconnect;
+            _streamlabsClient.OnDonation += StreamlabsOnDonation;
+        }
+
+        private void StreamlabsOnConnect(Streamlabs.BaseEventArgs e)
+        {
+            btnDisconnectStreamlabs.InvokeIfRequired(btn => { btn.Enabled = true; });
+            statusStrip.InvokeIfRequired(ss => { ss.Items["statusLblStreamlabs"].Image = Properties.Resources.connectedIcon; });
+        }
+
+        private void StreamlabsOnDisconnect(Streamlabs.BaseEventArgs e)
+        {
+
+            btnConnectStreamlabs.InvokeIfRequired(btn => { btn.Enabled = true; });
+            statusStrip.InvokeIfRequired(ss => { ss.Items["statusLblStreamlabs"].Image = Properties.Resources.disconnectedIcon; });
+        }
+
+        private void StreamlabsOnDonation(Streamlabs.DonationArgs e)
+        {
+            tbDonationMsg.InvokeIfRequired(tb => { tb.Text = $"{e.Time} {e.From} {e.Amount}\r\n{e.Message}"; });
+        }
+
+        private void btnConnectStreamlabs_Click(object sender, EventArgs e)
+        {
+            if (tbStreamlabsToken.Text != string.Empty)
+            {
+                btnConnectStreamlabs.Enabled = false;
+                tbStreamlabsToken.Enabled = false;
+                _streamlabsClient.Init(tbStreamlabsToken.Text); // TODO: Only when it's the first time or token changed
+                _streamlabsClient.Connect();
+            }
+        }
+
+        private void btnDisconnectStreamlabs_Click(object sender, EventArgs e)
+        {
+            btnDisconnectStreamlabs.Enabled = false;
+            tbStreamlabsToken.Enabled = true;
+            _streamlabsClient.Disconnect();
         }
 
         private void btnConnectTTSServer_Click(object sender, EventArgs e)
@@ -30,8 +70,33 @@ namespace CSharpClient
             {
                 btnConnectTTSServer.Enabled = false;
                 tbTTSServerIP.Enabled = false;
-                numericTTSServerPort.Enabled = false;
+                tbTTSServerPort.Enabled = false;
             }
+        }
+
+        private void numericMinimum_ValueChanged(object sender, EventArgs e)
+        {
+            _streamlabsClient.MinimumDonation = decimal.ToDouble(numericMinimum.Value);
+        }
+
+        private void cbHideIPandPort_CheckedChanged(object sender, EventArgs e)
+        {
+            tbTTSServerIP.UseSystemPasswordChar ^= true;
+            tbTTSServerPort.UseSystemPasswordChar ^= true;
+        }
+
+        private void cbDenoiser_CheckedChanged(object sender, EventArgs e)
+        {
+            lblDenoiserStrength.Visible ^= true;
+            tbDenoiserStrength.Visible ^= true;
+        }
+
+        // https://stackoverflow.com/questions/76455/how-do-you-change-the-color-of-the-border-on-a-group-box
+        // https://stackoverflow.com/questions/34562088/custom-groupbox-with-custom-textcolor-bordercolor-and-transparent-backcolor
+        private void groupBox_Paint(object sender, PaintEventArgs e)
+        {
+            GroupBox box = sender as GroupBox;
+            DrawGroupBox(box, e.Graphics, Color.Red, Color.Black);
         }
 
         private void DrawGroupBox(GroupBox box, Graphics g, Color textColor, Color borderColor)
@@ -67,11 +132,7 @@ namespace CSharpClient
             }
         }
 
-        private void groupBox_Paint(object sender, PaintEventArgs e)
-        {
-            GroupBox box = sender as GroupBox;
-            DrawGroupBox(box, e.Graphics, Color.Red, Color.SlateGray);
-        }
+        
 
         //IPHostEntry ipHostInfo = Dns.GetHostEntry("DESKTOP-4J6T4O5");
         //IPAddress ipAddress = ipHostInfo.AddressList[0];
@@ -92,5 +153,21 @@ namespace CSharpClient
         //ttsClient.Receive();
         //TTSClient.receiveDone.WaitOne();
         //Console.WriteLine("\nReceived");
+    }
+
+    // https://stackoverflow.com/questions/2367718/automating-the-invokerequired-code-pattern/12179408
+    public static class ControlHelpers
+    {
+        public static void InvokeIfRequired<T>(this T control, Action<T> action) where T : ISynchronizeInvoke
+        {
+            if (control.InvokeRequired)
+            {
+                control.Invoke(new Action(() => action(control)), null);
+            }
+            else
+            {
+                action(control);
+            }
+        }
     }
 }
