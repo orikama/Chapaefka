@@ -90,7 +90,7 @@ namespace CSharpClient.StreamlabsSocket
                 if (OnDonation != null &&
                     dontaionMessage["amount"].ToObject<double>() >= _minimumDonation)
                 {
-                    DonationArgs args = new DonationArgs()
+                    DonationEventArgs args = new DonationEventArgs()
                     {
                         From = dontaionMessage["from"].ToString(),
                         Message = dontaionMessage["message"].ToString(),
@@ -106,14 +106,14 @@ namespace CSharpClient.StreamlabsSocket
     }
 
     public delegate void ConnectionEventHandler(BaseEventArgs e);
-    public delegate void DataEventHandler(DonationArgs e);
+    public delegate void DataEventHandler(DonationEventArgs e);
 
     public class BaseEventArgs : EventArgs
     {
         public string Time = DateTime.Now.ToString("HH:mm:ss");
     }
 
-    public class DonationArgs : BaseEventArgs
+    public class DonationEventArgs : BaseEventArgs
     {
         public string From { get; set; }
         public string Message { get; set; }

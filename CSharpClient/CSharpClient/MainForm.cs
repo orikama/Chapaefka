@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics.Contracts;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -45,14 +46,14 @@ namespace CSharpClient
             statusStrip.InvokeIfRequired(ss => { ss.Items["statusLblStreamlabs"].Image = Properties.Resources.disconnectedIcon; });
         }
 
-        private void StreamlabsOnDonation(Streamlabs.DonationArgs e)
+        private void StreamlabsOnDonation(Streamlabs.DonationEventArgs e)
         {
             tbDonationMsg.InvokeIfRequired(tb => { tb.Text = $"{e.Time} {e.From} {e.Amount}\r\n{e.Message}"; });
         }
 
         private void btnConnectStreamlabs_Click(object sender, EventArgs e)
         {
-            if (tbStreamlabsToken.Text != string.Empty)
+            if (string.IsNullOrEmpty(tbStreamlabsToken.Text) == false)
             {
                 btnConnectStreamlabs.Enabled = false;
                 tbStreamlabsToken.Enabled = false;
@@ -76,13 +77,13 @@ namespace CSharpClient
         {
             int port = int.Parse(tbTTSServerPort.Text);
 
-            if (tbTTSServerIP.Text != string.Empty && port > 1000 && port < 65536)
+            if (string.IsNullOrEmpty(tbTTSServerIP.Text) == false && port > 1000 && port < 65536)
             {
                 btnConnectTTSServer.Enabled = false;
                 tbTTSServerIP.Enabled = false;
                 tbTTSServerPort.Enabled = false;
 
-                await _ttsClient.ConnectAsync(tbTTSServerIP.Text, port);
+                await _ttsClient.ConnectAsync(tbTTSServerIP.Text, port).ConfigureAwait(true);
                 
                 btnDisconnectTTSServer.Enabled = true;
                 statusLblTTSServer.Image = Properties.Resources.connectedIcon;
@@ -94,7 +95,7 @@ namespace CSharpClient
         {
             btnDisconnectTTSServer.Enabled = false;
 
-            await _ttsClient.DisconnectAsync();
+            await _ttsClient.DisconnectAsync().ConfigureAwait(true);
 
             tbTTSServerIP.Enabled = true;
             tbTTSServerPort.Enabled = true;
@@ -107,7 +108,7 @@ namespace CSharpClient
             btnSpeak.Enabled = false;
             tbDonationMsg.Enabled = false;
 
-            await _ttsClient.SendAsync(tbDonationMsg.Text);
+            await _ttsClient.SendAsync(tbDonationMsg.Text).ConfigureAwait(true);
 
             btnSpeak.Enabled = true;
             tbDonationMsg.Enabled = true;
@@ -144,32 +145,35 @@ namespace CSharpClient
         {
             if (box != null)
             {
-                Brush textBrush = new SolidBrush(textColor);
-                Brush borderBrush = new SolidBrush(borderColor);
-                Pen borderPen = new Pen(borderBrush);
-                SizeF strSize = g.MeasureString(box.Text, box.Font);
-                Rectangle rect = new Rectangle(box.ClientRectangle.X,
-                                               box.ClientRectangle.Y + (int)(strSize.Height / 2),
-                                               box.ClientRectangle.Width - 1,
-                                               box.ClientRectangle.Height - (int)(strSize.Height / 2) - 1);
+                using (Brush textBrush = new SolidBrush(textColor))
+                using (Brush borderBrush = new SolidBrush(borderColor))
+                using (Pen borderPen = new Pen(borderBrush))
+                {
+                    SizeF strSize = g.MeasureString(box.Text, box.Font);
+                    Rectangle rect = new Rectangle(box.ClientRectangle.X,
+                                                   box.ClientRectangle.Y + (int)(strSize.Height / 2),
+                                                   box.ClientRectangle.Width - 1,
+                                                   box.ClientRectangle.Height - (int)(strSize.Height / 2) - 1);
 
-                // Clear text and border
-                g.Clear(this.BackColor);
+                    // Clear text and border
+                    g.Clear(this.BackColor);
 
-                // Draw text
-                g.DrawString(box.Text, box.Font, textBrush, box.Padding.Left, 0);
+                    // Draw text
+                    g.DrawString(box.Text, box.Font, textBrush, box.Padding.Left, 0);
 
-                // Drawing Border
-                //Left
-                g.DrawLine(borderPen, rect.Location, new Point(rect.X, rect.Y + rect.Height));
-                //Right
-                g.DrawLine(borderPen, new Point(rect.X + rect.Width, rect.Y), new Point(rect.X + rect.Width, rect.Y + rect.Height));
-                //Bottom
-                g.DrawLine(borderPen, new Point(rect.X, rect.Y + rect.Height), new Point(rect.X + rect.Width, rect.Y + rect.Height));
-                //Top1
-                g.DrawLine(borderPen, new Point(rect.X, rect.Y), new Point(rect.X + box.Padding.Left, rect.Y));
-                //Top2
-                g.DrawLine(borderPen, new Point(rect.X + box.Padding.Left + (int)(strSize.Width), rect.Y), new Point(rect.X + rect.Width, rect.Y));
+                    // Drawing Border
+                    //Left
+                    g.DrawLine(borderPen, rect.Location, new Point(rect.X, rect.Y + rect.Height));
+                    //Right
+                    g.DrawLine(borderPen, new Point(rect.X + rect.Width, rect.Y), new Point(rect.X + rect.Width, rect.Y + rect.Height));
+                    //Bottom
+                    g.DrawLine(borderPen, new Point(rect.X, rect.Y + rect.Height), new Point(rect.X + rect.Width, rect.Y + rect.Height));
+                    //Top1
+                    g.DrawLine(borderPen, new Point(rect.X, rect.Y), new Point(rect.X + box.Padding.Left, rect.Y));
+                    //Top2
+                    g.DrawLine(borderPen, new Point(rect.X + box.Padding.Left + (int)(strSize.Width), rect.Y), new Point(rect.X + rect.Width, rect.Y));
+                }
+
             }
         }
 
@@ -204,6 +208,7 @@ namespace CSharpClient
     {
         public static void InvokeIfRequired<T>(this T control, Action<T> action) where T : ISynchronizeInvoke
         {
+            Contract.Requires<ArgumentNullException>(action != null, "Action cannot be null.");
             if (control.InvokeRequired)
             {
                 control.Invoke(new Action(() => action(control)), null);

@@ -32,7 +32,7 @@ namespace CSharpClient.TTSServerSocket
             if (_ttsServerNameOrAddress != ttsServerNameOrAddress)
             {
                 _ttsServerNameOrAddress = ttsServerNameOrAddress;
-                ipHostInfo = await Dns.GetHostEntryAsync(ttsServerNameOrAddress);
+                ipHostInfo = await Dns.GetHostEntryAsync(ttsServerNameOrAddress).ConfigureAwait(false);
 
                 endPointChanged = true;
             }
@@ -51,7 +51,7 @@ namespace CSharpClient.TTSServerSocket
                 //_socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress)
             }
 
-            await Task.Factory.FromAsync(_socket.BeginConnect, _socket.EndConnect, _ipEndPoint, null);
+            await Task.Factory.FromAsync(_socket.BeginConnect, _socket.EndConnect, _ipEndPoint, null).ConfigureAwait(false);
         }
 
         public async Task SendAsync(string data)
@@ -60,7 +60,7 @@ namespace CSharpClient.TTSServerSocket
             
             IAsyncResult result = _socket.BeginSend(byteData, 0, byteData.Length, SocketFlags.None, _nullCallback, null);
             
-            await Task.Factory.FromAsync(result, _socket.EndSend);
+            await Task.Factory.FromAsync(result, _socket.EndSend).ConfigureAwait(false);
 
             //using (var stream = new NetworkStream(_socket))
             //{
@@ -73,19 +73,29 @@ namespace CSharpClient.TTSServerSocket
         {
             using (var stream = new NetworkStream(_socket))
             {
-                return await stream.ReadAsync(buffer, offset, count);
+                return await stream.ReadAsync(buffer, offset, count).ConfigureAwait(false);
             }
         }
 
         public async Task DisconnectAsync()
         {
             _socket.Shutdown(SocketShutdown.Both);
-            await Task.Factory.FromAsync(_socket.BeginDisconnect, _socket.EndDisconnect, true, null);
+            await Task.Factory.FromAsync(_socket.BeginDisconnect, _socket.EndDisconnect, true, null).ConfigureAwait(false);
         }
 
         public void Dispose()
         {
-            _socket?.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+            //_socket?.Dispose();
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                _socket?.Dispose();
+            }
         }
     }
 }
