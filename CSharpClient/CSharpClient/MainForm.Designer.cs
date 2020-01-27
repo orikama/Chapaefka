@@ -31,18 +31,21 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             this.tbDonationMsg = new System.Windows.Forms.TextBox();
             this.btnSkip = new System.Windows.Forms.Button();
-            this.btnSkpeak = new System.Windows.Forms.Button();
+            this.btnSpeak = new System.Windows.Forms.Button();
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabTTS = new System.Windows.Forms.TabPage();
             this.lblDonationMsg = new System.Windows.Forms.Label();
             this.tabOptions = new System.Windows.Forms.TabPage();
             this.gbAudio = new System.Windows.Forms.GroupBox();
+            this.btnAudioApply = new System.Windows.Forms.Button();
             this.tbSigma = new System.Windows.Forms.TextBox();
             this.lblSigma = new System.Windows.Forms.Label();
-            this.tbDenoiserStrength = new System.Windows.Forms.TextBox();
             this.lblDenoiserStrength = new System.Windows.Forms.Label();
             this.cbDenoiser = new System.Windows.Forms.CheckBox();
+            this.tbDenoiserStrength = new System.Windows.Forms.TextBox();
             this.gbTTSServer = new System.Windows.Forms.GroupBox();
+            this.tbTTSServerPort = new System.Windows.Forms.TextBox();
+            this.cbHideIPandPort = new System.Windows.Forms.CheckBox();
             this.lblTTSServerIP = new System.Windows.Forms.Label();
             this.tbTTSServerIP = new System.Windows.Forms.TextBox();
             this.btnDisconnectTTSServer = new System.Windows.Forms.Button();
@@ -53,14 +56,11 @@
             this.numericMinimum = new System.Windows.Forms.NumericUpDown();
             this.lblStreamlabsToken = new System.Windows.Forms.Label();
             this.tbStreamlabsToken = new System.Windows.Forms.TextBox();
-            this.btnDisconnectStreamlabs = new System.Windows.Forms.Button();
             this.btnConnectStreamlabs = new System.Windows.Forms.Button();
+            this.btnDisconnectStreamlabs = new System.Windows.Forms.Button();
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusLblStreamlabs = new System.Windows.Forms.ToolStripStatusLabel();
             this.statusLblTTSServer = new System.Windows.Forms.ToolStripStatusLabel();
-            this.cbHideIPandPort = new System.Windows.Forms.CheckBox();
-            this.tbTTSServerPort = new System.Windows.Forms.TextBox();
-            this.btnAudioApply = new System.Windows.Forms.Button();
             this.tabControl.SuspendLayout();
             this.tabTTS.SuspendLayout();
             this.tabOptions.SuspendLayout();
@@ -89,15 +89,16 @@
             this.btnSkip.Text = "Skip";
             this.btnSkip.UseVisualStyleBackColor = true;
             // 
-            // btnSkpeak
+            // btnSpeak
             // 
-            this.btnSkpeak.Enabled = false;
-            this.btnSkpeak.Location = new System.Drawing.Point(433, 291);
-            this.btnSkpeak.Name = "btnSkpeak";
-            this.btnSkpeak.Size = new System.Drawing.Size(75, 23);
-            this.btnSkpeak.TabIndex = 2;
-            this.btnSkpeak.Text = "Speak";
-            this.btnSkpeak.UseVisualStyleBackColor = true;
+            this.btnSpeak.Enabled = false;
+            this.btnSpeak.Location = new System.Drawing.Point(433, 291);
+            this.btnSpeak.Name = "btnSpeak";
+            this.btnSpeak.Size = new System.Drawing.Size(75, 23);
+            this.btnSpeak.TabIndex = 2;
+            this.btnSpeak.Text = "Speak";
+            this.btnSpeak.UseVisualStyleBackColor = true;
+            this.btnSpeak.Click += new System.EventHandler(this.btnSpeak_Click);
             // 
             // tabControl
             // 
@@ -115,7 +116,7 @@
             // tabTTS
             // 
             this.tabTTS.Controls.Add(this.lblDonationMsg);
-            this.tabTTS.Controls.Add(this.btnSkpeak);
+            this.tabTTS.Controls.Add(this.btnSpeak);
             this.tabTTS.Controls.Add(this.tbDonationMsg);
             this.tabTTS.Controls.Add(this.btnSkip);
             this.tabTTS.Location = new System.Drawing.Point(4, 24);
@@ -165,6 +166,15 @@
             this.gbAudio.Text = "Audio";
             this.gbAudio.Paint += new System.Windows.Forms.PaintEventHandler(this.groupBox_Paint);
             // 
+            // btnAudioApply
+            // 
+            this.btnAudioApply.Location = new System.Drawing.Point(68, 75);
+            this.btnAudioApply.Name = "btnAudioApply";
+            this.btnAudioApply.Size = new System.Drawing.Size(75, 23);
+            this.btnAudioApply.TabIndex = 6;
+            this.btnAudioApply.Text = "Apply";
+            this.btnAudioApply.UseVisualStyleBackColor = true;
+            // 
             // tbSigma
             // 
             this.tbSigma.Location = new System.Drawing.Point(68, 48);
@@ -182,16 +192,6 @@
             this.lblSigma.Size = new System.Drawing.Size(43, 15);
             this.lblSigma.TabIndex = 4;
             this.lblSigma.Text = "Sigma";
-            // 
-            // tbDenoiserStrength
-            // 
-            this.tbDenoiserStrength.Location = new System.Drawing.Point(156, 18);
-            this.tbDenoiserStrength.MaxLength = 4;
-            this.tbDenoiserStrength.Name = "tbDenoiserStrength";
-            this.tbDenoiserStrength.Size = new System.Drawing.Size(37, 21);
-            this.tbDenoiserStrength.TabIndex = 3;
-            this.tbDenoiserStrength.Text = "0.01";
-            this.tbDenoiserStrength.Visible = false;
             // 
             // lblDenoiserStrength
             // 
@@ -215,6 +215,16 @@
             this.cbDenoiser.UseVisualStyleBackColor = true;
             this.cbDenoiser.CheckedChanged += new System.EventHandler(this.cbDenoiser_CheckedChanged);
             // 
+            // tbDenoiserStrength
+            // 
+            this.tbDenoiserStrength.Location = new System.Drawing.Point(156, 18);
+            this.tbDenoiserStrength.MaxLength = 4;
+            this.tbDenoiserStrength.Name = "tbDenoiserStrength";
+            this.tbDenoiserStrength.Size = new System.Drawing.Size(37, 21);
+            this.tbDenoiserStrength.TabIndex = 3;
+            this.tbDenoiserStrength.Text = "0.01";
+            this.tbDenoiserStrength.Visible = false;
+            // 
             // gbTTSServer
             // 
             this.gbTTSServer.Controls.Add(this.tbTTSServerPort);
@@ -234,6 +244,27 @@
             this.gbTTSServer.Text = "TTS Server";
             this.gbTTSServer.Paint += new System.Windows.Forms.PaintEventHandler(this.groupBox_Paint);
             // 
+            // tbTTSServerPort
+            // 
+            this.tbTTSServerPort.Location = new System.Drawing.Point(310, 22);
+            this.tbTTSServerPort.MaxLength = 5;
+            this.tbTTSServerPort.Name = "tbTTSServerPort";
+            this.tbTTSServerPort.Size = new System.Drawing.Size(52, 21);
+            this.tbTTSServerPort.TabIndex = 11;
+            this.tbTTSServerPort.Text = "17853";
+            // 
+            // cbHideIPandPort
+            // 
+            this.cbHideIPandPort.AutoSize = true;
+            this.cbHideIPandPort.Location = new System.Drawing.Point(6, 57);
+            this.cbHideIPandPort.Name = "cbHideIPandPort";
+            this.cbHideIPandPort.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
+            this.cbHideIPandPort.Size = new System.Drawing.Size(115, 19);
+            this.cbHideIPandPort.TabIndex = 10;
+            this.cbHideIPandPort.Text = "Hide IP and Port";
+            this.cbHideIPandPort.UseVisualStyleBackColor = true;
+            this.cbHideIPandPort.CheckedChanged += new System.EventHandler(this.cbHideIPandPort_CheckedChanged);
+            // 
             // lblTTSServerIP
             // 
             this.lblTTSServerIP.AutoSize = true;
@@ -251,6 +282,7 @@
             this.tbTTSServerIP.Name = "tbTTSServerIP";
             this.tbTTSServerIP.Size = new System.Drawing.Size(163, 21);
             this.tbTTSServerIP.TabIndex = 6;
+            this.tbTTSServerIP.Text = "localhost";
             // 
             // btnDisconnectTTSServer
             // 
@@ -262,6 +294,7 @@
             this.btnDisconnectTTSServer.TabIndex = 5;
             this.btnDisconnectTTSServer.Text = "Disconnect";
             this.btnDisconnectTTSServer.UseVisualStyleBackColor = true;
+            this.btnDisconnectTTSServer.Click += new System.EventHandler(this.btnDisconnectTTSServer_Click);
             // 
             // btnConnectTTSServer
             // 
@@ -347,6 +380,16 @@
             this.tbStreamlabsToken.Text = resources.GetString("tbStreamlabsToken.Text");
             this.tbStreamlabsToken.UseSystemPasswordChar = true;
             // 
+            // btnConnectStreamlabs
+            // 
+            this.btnConnectStreamlabs.Location = new System.Drawing.Point(401, 22);
+            this.btnConnectStreamlabs.Name = "btnConnectStreamlabs";
+            this.btnConnectStreamlabs.Size = new System.Drawing.Size(84, 23);
+            this.btnConnectStreamlabs.TabIndex = 2;
+            this.btnConnectStreamlabs.Text = "Connect";
+            this.btnConnectStreamlabs.UseVisualStyleBackColor = true;
+            this.btnConnectStreamlabs.Click += new System.EventHandler(this.btnConnectStreamlabs_Click);
+            // 
             // btnDisconnectStreamlabs
             // 
             this.btnDisconnectStreamlabs.Enabled = false;
@@ -357,16 +400,6 @@
             this.btnDisconnectStreamlabs.Text = "Disconnect";
             this.btnDisconnectStreamlabs.UseVisualStyleBackColor = true;
             this.btnDisconnectStreamlabs.Click += new System.EventHandler(this.btnDisconnectStreamlabs_Click);
-            // 
-            // btnConnectStreamlabs
-            // 
-            this.btnConnectStreamlabs.Location = new System.Drawing.Point(401, 22);
-            this.btnConnectStreamlabs.Name = "btnConnectStreamlabs";
-            this.btnConnectStreamlabs.Size = new System.Drawing.Size(84, 23);
-            this.btnConnectStreamlabs.TabIndex = 2;
-            this.btnConnectStreamlabs.Text = "Connect";
-            this.btnConnectStreamlabs.UseVisualStyleBackColor = true;
-            this.btnConnectStreamlabs.Click += new System.EventHandler(this.btnConnectStreamlabs_Click);
             // 
             // statusStrip
             // 
@@ -396,35 +429,6 @@
             this.statusLblTTSServer.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.statusLblTTSServer.Size = new System.Drawing.Size(76, 17);
             this.statusLblTTSServer.Text = "TTS Server";
-            // 
-            // cbHideIPandPort
-            // 
-            this.cbHideIPandPort.AutoSize = true;
-            this.cbHideIPandPort.Location = new System.Drawing.Point(6, 57);
-            this.cbHideIPandPort.Name = "cbHideIPandPort";
-            this.cbHideIPandPort.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.cbHideIPandPort.Size = new System.Drawing.Size(115, 19);
-            this.cbHideIPandPort.TabIndex = 10;
-            this.cbHideIPandPort.Text = "Hide IP and Port";
-            this.cbHideIPandPort.UseVisualStyleBackColor = true;
-            this.cbHideIPandPort.CheckedChanged += new System.EventHandler(this.cbHideIPandPort_CheckedChanged);
-            // 
-            // tbTTSServerPort
-            // 
-            this.tbTTSServerPort.Location = new System.Drawing.Point(310, 22);
-            this.tbTTSServerPort.MaxLength = 5;
-            this.tbTTSServerPort.Name = "tbTTSServerPort";
-            this.tbTTSServerPort.Size = new System.Drawing.Size(52, 21);
-            this.tbTTSServerPort.TabIndex = 11;
-            // 
-            // btnAudioApply
-            // 
-            this.btnAudioApply.Location = new System.Drawing.Point(68, 75);
-            this.btnAudioApply.Name = "btnAudioApply";
-            this.btnAudioApply.Size = new System.Drawing.Size(75, 23);
-            this.btnAudioApply.TabIndex = 6;
-            this.btnAudioApply.Text = "Apply";
-            this.btnAudioApply.UseVisualStyleBackColor = true;
             // 
             // MainForm
             // 
@@ -458,7 +462,7 @@
 
         private System.Windows.Forms.TextBox tbDonationMsg;
         private System.Windows.Forms.Button btnSkip;
-        private System.Windows.Forms.Button btnSkpeak;
+        private System.Windows.Forms.Button btnSpeak;
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage tabTTS;
         private System.Windows.Forms.TabPage tabOptions;

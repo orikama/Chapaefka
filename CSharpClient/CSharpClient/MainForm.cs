@@ -10,17 +10,20 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using Streamlabs = CSharpClient.StreamlabsSocket;
+using TTS = CSharpClient.TTSServerSocket;
 
 namespace CSharpClient
 {
     public partial class MainForm : Form
     {
-        private TTSClient _ttsClient = null;
+        private TTS.TTSClient _ttsClient = null;
         private Streamlabs.StreamlabsClient _streamlabsClient = null;
 
         public MainForm()
         {
             InitializeComponent();
+
+            _ttsClient = new TTS.TTSClient();
 
             _streamlabsClient = new Streamlabs.StreamlabsClient();
             _streamlabsClient.OnConnect += StreamlabsOnConnect;
@@ -28,6 +31,7 @@ namespace CSharpClient
             _streamlabsClient.OnDonation += StreamlabsOnDonation;
         }
 
+        #region Streamlabs
         private void StreamlabsOnConnect(Streamlabs.BaseEventArgs e)
         {
             btnDisconnectStreamlabs.InvokeIfRequired(btn => { btn.Enabled = true; });
@@ -64,15 +68,52 @@ namespace CSharpClient
             _streamlabsClient.Disconnect();
         }
 
-        private void btnConnectTTSServer_Click(object sender, EventArgs e)
+        #endregion Streamlabs
+
+        #region TTSServer
+
+        private async void btnConnectTTSServer_Click(object sender, EventArgs e)
         {
-            if(tbTTSServerIP.Text != string.Empty)
+            int port = int.Parse(tbTTSServerPort.Text);
+
+            if (tbTTSServerIP.Text != string.Empty && port > 1000 && port < 65536)
             {
                 btnConnectTTSServer.Enabled = false;
                 tbTTSServerIP.Enabled = false;
                 tbTTSServerPort.Enabled = false;
+
+                await _ttsClient.ConnectAsync(tbTTSServerIP.Text, port);
+                
+                btnDisconnectTTSServer.Enabled = true;
+                statusLblTTSServer.Image = Properties.Resources.connectedIcon;
+                btnSpeak.Enabled = true;
             }
         }
+
+        private async void btnDisconnectTTSServer_Click(object sender, EventArgs e)
+        {
+            btnDisconnectTTSServer.Enabled = false;
+
+            await _ttsClient.DisconnectAsync();
+
+            tbTTSServerIP.Enabled = true;
+            tbTTSServerPort.Enabled = true;
+            btnConnectTTSServer.Enabled = true;
+            statusLblTTSServer.Image = Properties.Resources.disconnectedIcon;
+        }
+
+        private async void btnSpeak_Click(object sender, EventArgs e)
+        {
+            btnSpeak.Enabled = false;
+            tbDonationMsg.Enabled = false;
+
+            await _ttsClient.SendAsync(tbDonationMsg.Text);
+
+            btnSpeak.Enabled = true;
+            tbDonationMsg.Enabled = true;
+        }
+
+        #endregion  TTSServer
 
         private void numericMinimum_ValueChanged(object sender, EventArgs e)
         {
@@ -133,6 +174,9 @@ namespace CSharpClient
         }
 
         
+
+
+
 
         //IPHostEntry ipHostInfo = Dns.GetHostEntry("DESKTOP-4J6T4O5");
         //IPAddress ipAddress = ipHostInfo.AddressList[0];
