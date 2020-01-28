@@ -4,6 +4,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
+using System.Buffers;
+
 //https://codereview.stackexchange.com/questions/177526/c-async-socket-wrapper
 
 namespace CSharpClient.TTSServerSocket
@@ -19,6 +21,13 @@ namespace CSharpClient.TTSServerSocket
         private const int ReceiveBufferSize = 32768;
 
         private AsyncCallback _nullCallback = (i) => { };
+
+        private bool _disposed = false;
+
+        public bool Connected
+        {
+            get { return _socket is null ? false : _socket.Connected; }
+        }
 
         public TTSClient()
         { }
@@ -92,11 +101,36 @@ namespace CSharpClient.TTSServerSocket
 
         protected virtual void Dispose(bool disposing)
         {
+            if (_disposed)
+                return;
+
             if (disposing)
-            {
                 _socket?.Dispose();
-            }
+
+            _disposed = true;
         }
+
+        ~TTSClient()
+        {
+            Dispose(false);
+        }
+    }
+
+    struct WavHeader
+    {
+        UInt32 ChunkId;         // "RIFF" - 0x52494646
+        UInt32 ChunkSize;       // fileSize minus size of ChunkId and ChunkSize => fileSize - 8 
+        UInt32 Format;          // "WAVE" - 0x57415645
+        UInt32 Subchunk1Id;     // "fmt " - 0x666d7420
+        UInt32 Subchunk1Size;   // 16 for PCM format
+        UInt16 AudioFormat;     // 1 for PCM format
+        UInt16 NumChannels;     // mono=1, stereo=2 etc.
+        UInt32 SampleRate;      // 22050Hz, 44100Hz etc.
+        UInt32 ByteRate;        // sampleRate * numChannels * bitsPerSample/8
+        UInt16 BlockAlign;      // numChannels * bitsPerSample/8
+        UInt16 BitsPerSample;   // sound depth - 8 bit, 16 bit, etc.
+        UInt32 Subchunk2Id;     // "data" - 0x64617461
+        UInt32 Subchunk2Size;   // numSamples * numChannels * bitsPerSample/8
     }
 }
 

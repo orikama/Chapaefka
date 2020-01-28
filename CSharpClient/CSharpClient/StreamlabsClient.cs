@@ -14,23 +14,30 @@ namespace CSharpClient.StreamlabsSocket
         private static readonly Uri s_uri = new Uri(_host);
 
         private string _token = null;
-        private double _minimumDonation;
+        private decimal _minimumDonation;
 
         private readonly IO.Options _ioOptions = null;
         private SocketIO _socketIO = null;
+        private bool _connected = false;
+
+        private Queue<DonationEventArgs> _donationQueue = new Queue<DonationEventArgs>(10);
 
         public event ConnectionEventHandler OnConnect = null;
         public event ConnectionEventHandler OnDisconnect = null;
         public event DataEventHandler OnDonation = null;
 
-        public double MinimumDonation
+        public bool Connected => _connected;
+
+        public decimal MinimumDonation
         {
             get { return _minimumDonation; }
             set { _minimumDonation = value; }
         }
 
+        public Queue<DonationEventArgs> DonationQueue => _donationQueue;
+
         public StreamlabsClient()
-        {
+        { 
             _ioOptions = new IO.Options
             {
                 Host = _host,
@@ -45,39 +52,44 @@ namespace CSharpClient.StreamlabsSocket
 
         public void Init(string token)
         {
-            _token = token;
-            _ioOptions.Query["token"] = _token;
-            _socketIO = IO.Socket(s_uri, _ioOptions);
+            if(_token != token)
+            {
+                _token = token;
+                _ioOptions.Query["token"] = token;
+                _socketIO = IO.Socket(s_uri, _ioOptions);
 
-            _socketIO.On(SocketIO.EVENT_CONNECT, () => Connected());
-            _socketIO.On(SocketIO.EVENT_DISCONNECT, () => Disconnected());
-            _socketIO.On("event", (data) => DataReceived(data));
+                _socketIO.On(SocketIO.EVENT_CONNECT, () => ConnectedCallback());
+                _socketIO.On(SocketIO.EVENT_DISCONNECT, () => DisconnectedCallback());
+                _socketIO.On("event", (data) => DataReceivedCallback(data));
+            }
         }
 
         public void Connect() => _socketIO.Connect();
         public void Disconnect() => _socketIO.Disconnect();
 
-        private void Connected()
+        private void ConnectedCallback()
         {
+            _connected = true;
+
             if (OnConnect != null)
             {
                 BaseEventArgs args = new BaseEventArgs();
-
                 OnConnect(args);
             }
         }
 
-        private void Disconnected()
+        private void DisconnectedCallback()
         {
+            _connected = false;
+
             if (OnDisconnect != null)
             {
                 BaseEventArgs args = new BaseEventArgs();
-
                 OnDisconnect(args);
             }
         }
 
-        private void DataReceived(object data)
+        private void DataReceivedCallback(object data)
         {
             JObject jData = (JObject)data;
 
@@ -87,8 +99,7 @@ namespace CSharpClient.StreamlabsSocket
             {
                 JToken dontaionMessage = jData["message"][0];
 
-                if (OnDonation != null &&
-                    dontaionMessage["amount"].ToObject<double>() >= _minimumDonation)
+                if (OnDonation != null && dontaionMessage["amount"].ToObject<decimal>() >= _minimumDonation)
                 {
                     DonationEventArgs args = new DonationEventArgs()
                     {
@@ -97,6 +108,7 @@ namespace CSharpClient.StreamlabsSocket
                         Amount = dontaionMessage["formatted_amount"].ToString()
 
                     };
+                    _donationQueue.Enqueue(args);
 
                     OnDonation(args);
                 }

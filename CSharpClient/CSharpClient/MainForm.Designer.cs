@@ -61,6 +61,7 @@
             this.statusStrip = new System.Windows.Forms.StatusStrip();
             this.statusLblStreamlabs = new System.Windows.Forms.ToolStripStatusLabel();
             this.statusLblTTSServer = new System.Windows.Forms.ToolStripStatusLabel();
+            this.backWorker = new System.ComponentModel.BackgroundWorker();
             this.tabControl.SuspendLayout();
             this.tabTTS.SuspendLayout();
             this.tabOptions.SuspendLayout();
@@ -182,7 +183,6 @@
             this.tbSigma.Name = "tbSigma";
             this.tbSigma.Size = new System.Drawing.Size(53, 21);
             this.tbSigma.TabIndex = 5;
-            this.tbSigma.Text = "0.800";
             // 
             // lblSigma
             // 
@@ -222,7 +222,6 @@
             this.tbDenoiserStrength.Name = "tbDenoiserStrength";
             this.tbDenoiserStrength.Size = new System.Drawing.Size(37, 21);
             this.tbDenoiserStrength.TabIndex = 3;
-            this.tbDenoiserStrength.Text = "0.01";
             this.tbDenoiserStrength.Visible = false;
             // 
             // gbTTSServer
@@ -251,7 +250,6 @@
             this.tbTTSServerPort.Name = "tbTTSServerPort";
             this.tbTTSServerPort.Size = new System.Drawing.Size(52, 21);
             this.tbTTSServerPort.TabIndex = 11;
-            this.tbTTSServerPort.Text = "17853";
             // 
             // cbHideIPandPort
             // 
@@ -282,7 +280,6 @@
             this.tbTTSServerIP.Name = "tbTTSServerIP";
             this.tbTTSServerIP.Size = new System.Drawing.Size(163, 21);
             this.tbTTSServerIP.TabIndex = 6;
-            this.tbTTSServerIP.Text = "localhost";
             // 
             // btnDisconnectTTSServer
             // 
@@ -355,11 +352,6 @@
             this.numericMinimum.Name = "numericMinimum";
             this.numericMinimum.Size = new System.Drawing.Size(50, 21);
             this.numericMinimum.TabIndex = 4;
-            this.numericMinimum.Value = new decimal(new int[] {
-            100,
-            0,
-            0,
-            131072});
             this.numericMinimum.ValueChanged += new System.EventHandler(this.numericMinimum_ValueChanged);
             // 
             // lblStreamlabsToken
@@ -377,7 +369,6 @@
             this.tbStreamlabsToken.Name = "tbStreamlabsToken";
             this.tbStreamlabsToken.Size = new System.Drawing.Size(354, 21);
             this.tbStreamlabsToken.TabIndex = 0;
-            this.tbStreamlabsToken.Text = resources.GetString("tbStreamlabsToken.Text");
             this.tbStreamlabsToken.UseSystemPasswordChar = true;
             // 
             // btnConnectStreamlabs
@@ -430,6 +421,10 @@
             this.statusLblTTSServer.Size = new System.Drawing.Size(76, 17);
             this.statusLblTTSServer.Text = "TTS Server";
             // 
+            // backWorker
+            // 
+            this.backWorker.WorkerSupportsCancellation = true;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -437,9 +432,13 @@
             this.ClientSize = new System.Drawing.Size(536, 370);
             this.Controls.Add(this.statusStrip);
             this.Controls.Add(this.tabControl);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
+            this.MaximizeBox = false;
             this.Name = "MainForm";
             this.Text = "Chapaefka";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainForm_FormClosing);
+            this.Load += new System.EventHandler(this.MainForm_Load);
             this.tabControl.ResumeLayout(false);
             this.tabTTS.ResumeLayout(false);
             this.tabTTS.PerformLayout();
@@ -492,5 +491,6 @@
         private System.Windows.Forms.CheckBox cbHideIPandPort;
         private System.Windows.Forms.TextBox tbTTSServerPort;
         private System.Windows.Forms.Button btnAudioApply;
+        private System.ComponentModel.BackgroundWorker backWorker;
     }
 }

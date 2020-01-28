@@ -12,6 +12,7 @@ using System.Windows.Forms;
 
 using Streamlabs = CSharpClient.StreamlabsSocket;
 using TTS = CSharpClient.TTSServerSocket;
+using JSettings = CSharpClient.AppSettings;
 
 namespace CSharpClient
 {
@@ -19,12 +20,14 @@ namespace CSharpClient
     {
         private TTS.TTSClient _ttsClient = null;
         private Streamlabs.StreamlabsClient _streamlabsClient = null;
+        private JSettings.SettingsLoader _jsettings = null;
 
         public MainForm()
         {
             InitializeComponent();
 
             _ttsClient = new TTS.TTSClient();
+            _jsettings = new JSettings.SettingsLoader();
 
             _streamlabsClient = new Streamlabs.StreamlabsClient();
             _streamlabsClient.OnConnect += StreamlabsOnConnect;
@@ -33,6 +36,7 @@ namespace CSharpClient
         }
 
         #region Streamlabs
+
         private void StreamlabsOnConnect(Streamlabs.BaseEventArgs e)
         {
             btnDisconnectStreamlabs.InvokeIfRequired(btn => { btn.Enabled = true; });
@@ -41,7 +45,6 @@ namespace CSharpClient
 
         private void StreamlabsOnDisconnect(Streamlabs.BaseEventArgs e)
         {
-
             btnConnectStreamlabs.InvokeIfRequired(btn => { btn.Enabled = true; });
             statusStrip.InvokeIfRequired(ss => { ss.Items["statusLblStreamlabs"].Image = Properties.Resources.disconnectedIcon; });
         }
@@ -51,14 +54,19 @@ namespace CSharpClient
             tbDonationMsg.InvokeIfRequired(tb => { tb.Text = $"{e.Time} {e.From} {e.Amount}\r\n{e.Message}"; });
         }
 
+        private void StreamlabsConnect(string token)
+        {
+            btnConnectStreamlabs.Enabled = false;
+            tbStreamlabsToken.Enabled = false;
+            _streamlabsClient.Init(token);
+            _streamlabsClient.Connect();
+        }
+
         private void btnConnectStreamlabs_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(tbStreamlabsToken.Text) == false)
             {
-                btnConnectStreamlabs.Enabled = false;
-                tbStreamlabsToken.Enabled = false;
-                _streamlabsClient.Init(tbStreamlabsToken.Text); // TODO: Only when it's the first time or token changed
-                _streamlabsClient.Connect();
+                StreamlabsConnect(tbStreamlabsToken.Text);
             }
         }
 
@@ -73,21 +81,26 @@ namespace CSharpClient
 
         #region TTSServer
 
+        private async Task TTSServerConnect(string host, int port)
+        {
+            btnConnectTTSServer.Enabled = false;
+            tbTTSServerIP.Enabled = false;
+            tbTTSServerPort.Enabled = false;
+
+            await _ttsClient.ConnectAsync(host, port).ConfigureAwait(true);
+
+            btnDisconnectTTSServer.Enabled = true;
+            statusLblTTSServer.Image = Properties.Resources.connectedIcon;
+            btnSpeak.Enabled = true;
+        }
+
         private async void btnConnectTTSServer_Click(object sender, EventArgs e)
         {
             int port = int.Parse(tbTTSServerPort.Text);
 
             if (string.IsNullOrEmpty(tbTTSServerIP.Text) == false && port > 1000 && port < 65536)
             {
-                btnConnectTTSServer.Enabled = false;
-                tbTTSServerIP.Enabled = false;
-                tbTTSServerPort.Enabled = false;
-
-                await _ttsClient.ConnectAsync(tbTTSServerIP.Text, port).ConfigureAwait(true);
-                
-                btnDisconnectTTSServer.Enabled = true;
-                statusLblTTSServer.Image = Properties.Resources.connectedIcon;
-                btnSpeak.Enabled = true;
+                await TTSServerConnect(tbTTSServerIP.Text, port).ConfigureAwait(true);
             }
         }
 
@@ -118,7 +131,7 @@ namespace CSharpClient
 
         private void numericMinimum_ValueChanged(object sender, EventArgs e)
         {
-            _streamlabsClient.MinimumDonation = decimal.ToDouble(numericMinimum.Value);
+            _streamlabsClient.MinimumDonation = numericMinimum.Value;
         }
 
         private void cbHideIPandPort_CheckedChanged(object sender, EventArgs e)
@@ -131,6 +144,48 @@ namespace CSharpClient
         {
             lblDenoiserStrength.Visible ^= true;
             tbDenoiserStrength.Visible ^= true;
+        }
+
+        private async void MainForm_Load(object sender, EventArgs e)
+        {
+            if (_jsettings.CanLoadSettings)
+            {
+                _jsettings.LoadSettings();
+                JSettings.Settings settings = _jsettings.Settings;
+
+                tbTTSServerIP.Text = settings.NameOrIP;
+                tbTTSServerPort.Text = settings.Port.ToString();
+                cbHideIPandPort.Checked = settings.HideIPandPort;
+                tbStreamlabsToken.Text = settings.Token;
+                numericMinimum.Value = settings.MinimumDonation;
+                cbDenoiser.Checked = settings.UseDenoiser;
+                tbDenoiserStrength.Text = settings.DenoiserStrength;
+                tbSigma.Text = settings.Sigma;
+
+                StreamlabsConnect(settings.Token);
+                await TTSServerConnect(settings.NameOrIP, settings.Port).ConfigureAwait(true);
+            }
+        }
+
+        private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (_ttsClient != null && _ttsClient.Connected)
+            {
+                Task task = _ttsClient.DisconnectAsync();
+
+                JSettings.Settings settings = _jsettings.Settings;
+                settings.NameOrIP = tbTTSServerIP.Text;
+                settings.Port = ushort.Parse(tbTTSServerPort.Text);
+                settings.HideIPandPort = cbHideIPandPort.Checked;
+                settings.Token = tbStreamlabsToken.Text;
+                settings.MinimumDonation = numericMinimum.Value;
+                settings.UseDenoiser = cbDenoiser.Checked;
+                settings.DenoiserStrength = tbDenoiserStrength.Text;
+                settings.Sigma = tbSigma.Text;
+
+                _jsettings.SaveSettings();
+                task.Wait();
+            }
         }
 
         // https://stackoverflow.com/questions/76455/how-do-you-change-the-color-of-the-border-on-a-group-box
@@ -177,8 +232,11 @@ namespace CSharpClient
             }
         }
 
-        
-
+        ~MainForm()
+        {
+            _ttsClient?.Dispose();
+            base.Dispose();
+        }
 
 
 
@@ -188,19 +246,6 @@ namespace CSharpClient
 
         //TTSClient ttsClient = new TTSClient("localhost", 17853);
         //ttsClient.Connect();
-
-        //Console.Write("Connecting");
-        //TTSClient.connectDone.WaitOne();
-
-        //Console.WriteLine("\nSending");
-        //ttsClient.Send("We need to build the Wall.");
-        //TTSClient.sendDone.WaitOne();
-        //Console.WriteLine("\nSent");
-
-        //Console.WriteLine("\nReceiving");
-        //ttsClient.Receive();
-        //TTSClient.receiveDone.WaitOne();
-        //Console.WriteLine("\nReceived");
     }
 
     // https://stackoverflow.com/questions/2367718/automating-the-invokerequired-code-pattern/12179408
@@ -208,7 +253,7 @@ namespace CSharpClient
     {
         public static void InvokeIfRequired<T>(this T control, Action<T> action) where T : ISynchronizeInvoke
         {
-            Contract.Requires<ArgumentNullException>(action != null, "Action cannot be null.");
+            //Contract.Requires<ArgumentNullException>(action != null, "Action cannot be null.");
             if (control.InvokeRequired)
             {
                 control.Invoke(new Action(() => action(control)), null);
