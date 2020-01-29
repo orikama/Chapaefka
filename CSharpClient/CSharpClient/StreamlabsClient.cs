@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 
 using Newtonsoft.Json.Linq;
 using Quobject.SocketIoClientDotNet.Client;
@@ -20,7 +21,8 @@ namespace CSharpClient.StreamlabsSocket
         private SocketIO _socketIO = null;
         private bool _connected = false;
 
-        private Queue<DonationEventArgs> _donationQueue = new Queue<DonationEventArgs>(10);
+        //private ConcurrentQueue<DonationEventArgs> _donationQueue = new ConcurrentQueue<DonationEventArgs>();
+        //private Queue<DonationEventArgs> _donationQueue = new Queue<DonationEventArgs>(10);
 
         public event ConnectionEventHandler OnConnect = null;
         public event ConnectionEventHandler OnDisconnect = null;
@@ -34,7 +36,7 @@ namespace CSharpClient.StreamlabsSocket
             set { _minimumDonation = value; }
         }
 
-        public Queue<DonationEventArgs> DonationQueue => _donationQueue;
+        //public ConcurrentQueue<DonationEventArgs> DonationQueue => _donationQueue;
 
         public StreamlabsClient()
         { 
@@ -108,7 +110,7 @@ namespace CSharpClient.StreamlabsSocket
                         Amount = dontaionMessage["formatted_amount"].ToString()
 
                     };
-                    _donationQueue.Enqueue(args);
+                    //_donationQueue.Enqueue(args);
 
                     OnDonation(args);
                 }

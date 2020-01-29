@@ -10,29 +10,86 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+using System.Threading.Channels;
+using System.Buffers;
+
 using Streamlabs = CSharpClient.StreamlabsSocket;
 using TTS = CSharpClient.TTSServerSocket;
+using Wav = CSharpClient.WavPlayer;
 using JSettings = CSharpClient.AppSettings;
 
 namespace CSharpClient
 {
     public partial class MainForm : Form
     {
-        private TTS.TTSClient _ttsClient = null;
-        private Streamlabs.StreamlabsClient _streamlabsClient = null;
-        private JSettings.SettingsLoader _jsettings = null;
+        private readonly TTS.TTSClient _ttsClient = null;
+        private readonly Wav.WavPlayer _wavPlayer = null;
+        private readonly Streamlabs.StreamlabsClient _streamlabsClient = null;
+        private readonly JSettings.SettingsLoader _jsettings = null;
+
+        
+
+        private readonly Channel<byte[]> _wavToPlayerChannel = null;
+        private readonly Channel<Streamlabs.DonationEventArgs> _textToWavChannel = null;
 
         public MainForm()
         {
             InitializeComponent();
 
+            BoundedChannelOptions boundedOptions = new BoundedChannelOptions(15);
+            boundedOptions.FullMode = BoundedChannelFullMode.Wait;
+            boundedOptions.SingleReader = true;
+            boundedOptions.SingleWriter = true;
+            _wavToPlayerChannel = Channel.CreateBounded<byte[]>(boundedOptions);
+
+            UnboundedChannelOptions unboundedOptions = new UnboundedChannelOptions();
+            unboundedOptions.SingleReader = true;
+            unboundedOptions.SingleWriter = true;
+            _textToWavChannel = Channel.CreateUnbounded<Streamlabs.DonationEventArgs>(unboundedOptions);
+
             _ttsClient = new TTS.TTSClient();
+            _wavPlayer = new Wav.WavPlayer();
             _jsettings = new JSettings.SettingsLoader();
 
             _streamlabsClient = new Streamlabs.StreamlabsClient();
             _streamlabsClient.OnConnect += StreamlabsOnConnect;
             _streamlabsClient.OnDisconnect += StreamlabsOnDisconnect;
             _streamlabsClient.OnDonation += StreamlabsOnDonation;
+        }
+
+        // TODO: testing channels, need cancellation tokens to stop this loops when winform closing
+        private async void LOOP1()
+        {
+            while (await _textToWavChannel.Reader.WaitToReadAsync().ConfigureAwait(false)) {
+                Streamlabs.DonationEventArgs donation;
+
+                while (_textToWavChannel.Reader.TryRead(out donation))
+                {
+                    tbDonationMsg.InvokeIfRequired(tb => { tb.Text = $"{donation.Time} {donation.From} {donation.Amount}\r\n{donation.Message}"; });
+
+                    await _ttsClient.SendAsync(donation.Message).ConfigureAwait(false);
+
+                    byte[] rawWav = null;
+                    await _ttsClient.ReceiveAsync(rawWav).ConfigureAwait(false);
+
+                    while (await _wavToPlayerChannel.Writer.WaitToWriteAsync().ConfigureAwait(false))
+                        if (_wavToPlayerChannel.Writer.TryWrite(rawWav))
+                            break;
+                }
+            }
+        }
+
+        private async void LOOP2()
+        {
+            while (await _wavToPlayerChannel.Reader.WaitToReadAsync().ConfigureAwait(false))
+            {
+                byte[] rawWav;
+
+                while (_wavToPlayerChannel.Reader.TryRead(out rawWav))
+                {
+                    await _wavPlayer.PlayAsync(rawWav).ConfigureAwait(false);
+                }
+            }
         }
 
         #region Streamlabs
@@ -51,6 +108,7 @@ namespace CSharpClient
 
         private void StreamlabsOnDonation(Streamlabs.DonationEventArgs e)
         {
+            _ = _textToWavChannel.Writer.TryWrite(e);
             tbDonationMsg.InvokeIfRequired(tb => { tb.Text = $"{e.Time} {e.From} {e.Amount}\r\n{e.Message}"; });
         }
 
@@ -121,7 +179,11 @@ namespace CSharpClient
             btnSpeak.Enabled = false;
             tbDonationMsg.Enabled = false;
 
-            await _ttsClient.SendAsync(tbDonationMsg.Text).ConfigureAwait(true);
+            await _ttsClient.SendAsync(tbDonationMsg.Text).ConfigureAwait(false);
+
+
+
+            await _ttsClient.ReceiveAsync();
 
             btnSpeak.Enabled = true;
             tbDonationMsg.Enabled = true;

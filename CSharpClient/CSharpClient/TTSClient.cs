@@ -6,19 +6,28 @@ using System.Text;
 
 using System.Buffers;
 
-//https://codereview.stackexchange.com/questions/177526/c-async-socket-wrapper
+// https://codereview.stackexchange.com/questions/177526/c-async-socket-wrapper
 
 namespace CSharpClient.TTSServerSocket
 {
     public class TTSClient : IDisposable
     {
+        private const int PrefixLength = 4;
+        private const int SendBufferSize = 512;
+        private const int ReceiveBufferSize = 32768;
+
         private Socket _socket = null;
         private string _ttsServerNameOrAddress = null;
         private int _ttsServerPort = -1;
         private IPEndPoint _ipEndPoint;
 
-        private const int SendBufferSize = 512;
-        private const int ReceiveBufferSize = 32768;
+        private const int WavHeaderOffset = 44;
+        private const int WavSecondSize = 44100; // 22050Hz * 2 bytes
+        private const int MaxSeconds = 110;
+        private const int WavBufferSize = WavSecondSize * MaxSeconds;
+
+        private readonly ArrayPool<byte> _wavBuffer = ArrayPool<byte>.Create(WavBufferSize, 10);
+        private int _wavBufferBytesRented = 0;
 
         private AsyncCallback _nullCallback = (i) => { };
 
@@ -78,11 +87,32 @@ namespace CSharpClient.TTSServerSocket
             //}
         }
 
-        public async Task<int> ReceiveAsync(byte[] buffer, int offset, int count)
+        public async Task ReceiveAsync(byte[] buffer)
         {
-            using (var stream = new NetworkStream(_socket))
+            byte[] prefix = new byte[PrefixLength];
+
+            int recvLen = await Task.Factory.FromAsync(
+                                   (cb, s) => _socket.BeginReceive(prefix, 0, PrefixLength, SocketFlags.None, cb, s),
+                                   ias => _socket.EndReceive(ias),
+                                   null).ConfigureAwait(false);
+            
+            if (recvLen != PrefixLength)
             {
-                return await stream.ReadAsync(buffer, offset, count).ConfigureAwait(false);
+                throw new ApplicationException("Failed to receive prefix");
+            }
+
+            int contentLength = BitConverter.ToInt32(prefix, 0);
+            buffer = _wavBuffer.Rent(contentLength + WavHeaderOffset);
+            _wavBufferBytesRented += buffer.Length;
+
+            recvLen = await Task.Factory.FromAsync(
+                                   (cb, s) => _socket.BeginReceive(buffer, WavHeaderOffset, contentLength, SocketFlags.None, cb, s),
+                                   ias => _socket.EndReceive(ias),
+                                   null).ConfigureAwait(false);
+
+            if (recvLen != contentLength)
+            {
+                throw new ApplicationException("Failed to receive content");
             }
         }
 
@@ -116,22 +146,6 @@ namespace CSharpClient.TTSServerSocket
         }
     }
 
-    struct WavHeader
-    {
-        UInt32 ChunkId;         // "RIFF" - 0x52494646
-        UInt32 ChunkSize;       // fileSize minus size of ChunkId and ChunkSize => fileSize - 8 
-        UInt32 Format;          // "WAVE" - 0x57415645
-        UInt32 Subchunk1Id;     // "fmt " - 0x666d7420
-        UInt32 Subchunk1Size;   // 16 for PCM format
-        UInt16 AudioFormat;     // 1 for PCM format
-        UInt16 NumChannels;     // mono=1, stereo=2 etc.
-        UInt32 SampleRate;      // 22050Hz, 44100Hz etc.
-        UInt32 ByteRate;        // sampleRate * numChannels * bitsPerSample/8
-        UInt16 BlockAlign;      // numChannels * bitsPerSample/8
-        UInt16 BitsPerSample;   // sound depth - 8 bit, 16 bit, etc.
-        UInt32 Subchunk2Id;     // "data" - 0x64617461
-        UInt32 Subchunk2Size;   // numSamples * numChannels * bitsPerSample/8
-    }
 }
 
 
