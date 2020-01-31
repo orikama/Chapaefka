@@ -21,6 +21,7 @@ namespace CSharpClient.StreamlabsSocket
         private SocketIO _socketIO = null;
         private bool _connected = false;
 
+        //public BlockingCollection<DonationEventArgs> args = new BlockingCollection<DonationEventArgs>();
         //private ConcurrentQueue<DonationEventArgs> _donationQueue = new ConcurrentQueue<DonationEventArgs>();
         //private Queue<DonationEventArgs> _donationQueue = new Queue<DonationEventArgs>(10);
 

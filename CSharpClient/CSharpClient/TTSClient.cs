@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
@@ -23,9 +24,11 @@ namespace CSharpClient.TTSServerSocket
 
         private const int WavHeaderOffset = 44;
         private const int WavSecondSize = 44100; // 22050Hz * 2 bytes
-        private const int MaxSeconds = 110;
+        private const int MaxSeconds = 150;
         private const int WavBufferSize = WavSecondSize * MaxSeconds;
+        private bool _bufferIsFull = false;
 
+        //private readonly ConcurrentQueue<byte[]> _rawWavs = new ConcurrentQueue<byte[]>();
         private readonly ArrayPool<byte> _wavBuffer = ArrayPool<byte>.Create(WavBufferSize, 10);
         private int _wavBufferBytesRented = 0;
 
@@ -33,10 +36,18 @@ namespace CSharpClient.TTSServerSocket
 
         private bool _disposed = false;
 
+
+        //public event Action FreeSpaceInBuffer;
+
         public bool Connected
         {
             get { return _socket is null ? false : _socket.Connected; }
         }
+
+        public bool BufferIsFull => _bufferIsFull;
+
+        //public ConcurrentQueue<byte[]> RawWavs => _rawWavs;
+
 
         public TTSClient()
         { }
@@ -79,15 +90,9 @@ namespace CSharpClient.TTSServerSocket
             IAsyncResult result = _socket.BeginSend(byteData, 0, byteData.Length, SocketFlags.None, _nullCallback, null);
             
             await Task.Factory.FromAsync(result, _socket.EndSend).ConfigureAwait(false);
-
-            //using (var stream = new NetworkStream(_socket))
-            //{
-            //    stream.write
-            //    await stream.WriteAsync(buffer, offset, count);
-            //}
         }
 
-        public async Task ReceiveAsync(byte[] buffer)
+        public async Task<Tuple<int, byte[]>> ReceiveAsync()
         {
             byte[] prefix = new byte[PrefixLength];
 
@@ -95,31 +100,53 @@ namespace CSharpClient.TTSServerSocket
                                    (cb, s) => _socket.BeginReceive(prefix, 0, PrefixLength, SocketFlags.None, cb, s),
                                    ias => _socket.EndReceive(ias),
                                    null).ConfigureAwait(false);
-            
+
             if (recvLen != PrefixLength)
             {
                 throw new ApplicationException("Failed to receive prefix");
             }
 
             int contentLength = BitConverter.ToInt32(prefix, 0);
-            buffer = _wavBuffer.Rent(contentLength + WavHeaderOffset);
-            _wavBufferBytesRented += buffer.Length;
+            byte[] bufferReference = _wavBuffer.Rent(contentLength + WavHeaderOffset);
+            //_rawWavs.Enqueue(buffer);
 
-            recvLen = await Task.Factory.FromAsync(
-                                   (cb, s) => _socket.BeginReceive(buffer, WavHeaderOffset, contentLength, SocketFlags.None, cb, s),
+            _wavBufferBytesRented += bufferReference.Length;
+            if (_wavBufferBytesRented + WavSecondSize * 20 >= WavBufferSize)
+                _bufferIsFull = true;
+
+            int currentLength = 0;
+            while(currentLength < contentLength)
+            {
+                recvLen = await Task.Factory.FromAsync(
+                                   (cb, s) => _socket.BeginReceive(bufferReference, currentLength + WavHeaderOffset, contentLength - currentLength, SocketFlags.None, cb, s),
                                    ias => _socket.EndReceive(ias),
                                    null).ConfigureAwait(false);
 
-            if (recvLen != contentLength)
-            {
-                throw new ApplicationException("Failed to receive content");
+                currentLength += recvLen;
             }
-        }
 
+            if (currentLength != contentLength)
+                throw new ApplicationException("Failed to receive content");
+
+            return new Tuple<int, byte[]>(contentLength + WavHeaderOffset, bufferReference);
+        }
+        // My fellow americans, today i found out that Igor Nazarov is a god damn cocksucker
         public async Task DisconnectAsync()
         {
             _socket.Shutdown(SocketShutdown.Both);
             await Task.Factory.FromAsync(_socket.BeginDisconnect, _socket.EndDisconnect, true, null).ConfigureAwait(false);
+        }
+
+        public void ReturnToBuffer(byte[] buffer)
+        {
+            _wavBufferBytesRented -= buffer.Length;
+            _wavBuffer.Return(buffer);
+
+            if (_wavBufferBytesRented + WavSecondSize * 20 <= WavBufferSize)
+            {
+                _bufferIsFull = false;
+                //FreeSpaceInBuffer?.Invoke();
+            }
         }
 
         public void Dispose()

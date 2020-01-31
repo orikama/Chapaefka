@@ -27,29 +27,34 @@ namespace CSharpClient
         private readonly Streamlabs.StreamlabsClient _streamlabsClient = null;
         private readonly JSettings.SettingsLoader _jsettings = null;
 
-        
-
-        private readonly Channel<byte[]> _wavToPlayerChannel = null;
+        private readonly Channel<Tuple<int, byte[]>> _wavToPlayerChannel = null;
         private readonly Channel<Streamlabs.DonationEventArgs> _textToWavChannel = null;
+
+        private CancellationTokenSource _ctsProducerTask = null;
+        private CancellationTokenSource _ctsConsumerTask = null;
+        private Task _producerTask = null;
+        private Task _consumerTask = null;
 
         public MainForm()
         {
             InitializeComponent();
 
-            BoundedChannelOptions boundedOptions = new BoundedChannelOptions(15);
+            UnboundedChannelOptions unboundedOptions = new UnboundedChannelOptions();
+            unboundedOptions.SingleReader = true;
+            unboundedOptions.SingleWriter = false;
+            _textToWavChannel = Channel.CreateUnbounded<Streamlabs.DonationEventArgs>(unboundedOptions);
+
+            BoundedChannelOptions boundedOptions = new BoundedChannelOptions(5);
             boundedOptions.FullMode = BoundedChannelFullMode.Wait;
             boundedOptions.SingleReader = true;
             boundedOptions.SingleWriter = true;
-            _wavToPlayerChannel = Channel.CreateBounded<byte[]>(boundedOptions);
+            _wavToPlayerChannel = Channel.CreateBounded<Tuple<int, byte[]>>(boundedOptions);
 
-            UnboundedChannelOptions unboundedOptions = new UnboundedChannelOptions();
-            unboundedOptions.SingleReader = true;
-            unboundedOptions.SingleWriter = true;
-            _textToWavChannel = Channel.CreateUnbounded<Streamlabs.DonationEventArgs>(unboundedOptions);
-
-            _ttsClient = new TTS.TTSClient();
             _wavPlayer = new Wav.WavPlayer();
             _jsettings = new JSettings.SettingsLoader();
+
+            _ttsClient = new TTS.TTSClient();
+            //_ttsClient.FreeSpaceInBuffer += ProcessDonation;
 
             _streamlabsClient = new Streamlabs.StreamlabsClient();
             _streamlabsClient.OnConnect += StreamlabsOnConnect;
@@ -57,20 +62,36 @@ namespace CSharpClient
             _streamlabsClient.OnDonation += StreamlabsOnDonation;
         }
 
+        //private async void ProcessDonation()
+        //{
+        //    Streamlabs.DonationEventArgs donation;
+
+        //    while (_streamlabsClient.DonationQueue.IsEmpty == false)
+        //        if (_streamlabsClient.DonationQueue.TryDequeue(out donation))
+        //        {
+        //            await _ttsClient.SendAsync(donation.Message).ConfigureAwait(false);
+        //            await _ttsClient.ReceiveAsync().ConfigureAwait(false);
+
+        //            break;
+        //        }
+
+        //}
+
         // TODO: testing channels, need cancellation tokens to stop this loops when winform closing
-        private async void LOOP1()
+        private async void ProducerLoop()
         {
-            while (await _textToWavChannel.Reader.WaitToReadAsync().ConfigureAwait(false)) {
+            while (await _textToWavChannel.Reader.WaitToReadAsync().ConfigureAwait(false))
+            {
                 Streamlabs.DonationEventArgs donation;
 
-                while (_textToWavChannel.Reader.TryRead(out donation))
+                if (_textToWavChannel.Reader.TryRead(out donation))
                 {
+                    //tbDonationMsg.invo
                     tbDonationMsg.InvokeIfRequired(tb => { tb.Text = $"{donation.Time} {donation.From} {donation.Amount}\r\n{donation.Message}"; });
 
                     await _ttsClient.SendAsync(donation.Message).ConfigureAwait(false);
-
-                    byte[] rawWav = null;
-                    await _ttsClient.ReceiveAsync(rawWav).ConfigureAwait(false);
+                    
+                    Tuple<int, byte[]> rawWav = await _ttsClient.ReceiveAsync().ConfigureAwait(false);
 
                     while (await _wavToPlayerChannel.Writer.WaitToWriteAsync().ConfigureAwait(false))
                         if (_wavToPlayerChannel.Writer.TryWrite(rawWav))
@@ -79,15 +100,14 @@ namespace CSharpClient
             }
         }
 
-        private async void LOOP2()
+        private async void ConsumerLoop()
         {
             while (await _wavToPlayerChannel.Reader.WaitToReadAsync().ConfigureAwait(false))
             {
-                byte[] rawWav;
-
-                while (_wavToPlayerChannel.Reader.TryRead(out rawWav))
+                if (_wavToPlayerChannel.Reader.TryRead(out Tuple<int, byte[]> rawWav))
                 {
                     await _wavPlayer.PlayAsync(rawWav).ConfigureAwait(false);
+                    _ttsClient.ReturnToBuffer(rawWav.Item2);
                 }
             }
         }
@@ -174,16 +194,20 @@ namespace CSharpClient
             statusLblTTSServer.Image = Properties.Resources.disconnectedIcon;
         }
 
-        private async void btnSpeak_Click(object sender, EventArgs e)
+        private void btnSpeak_Click(object sender, EventArgs e)
         {
             btnSpeak.Enabled = false;
             tbDonationMsg.Enabled = false;
 
-            await _ttsClient.SendAsync(tbDonationMsg.Text).ConfigureAwait(false);
+            //await _ttsClient.SendAsync(tbDonationMsg.Text).ConfigureAwait(false);
+            Streamlabs.DonationEventArgs donation = new Streamlabs.DonationEventArgs();
+            donation.Amount = "$15";
+            donation.From = "Me";
+            donation.Time = "right now";
+            donation.Message = tbDonationMsg.Text;
+            _ = _textToWavChannel.Writer.TryWrite(donation);
 
-
-
-            await _ttsClient.ReceiveAsync();
+            //await _ttsClient.ReceiveAsync();
 
             btnSpeak.Enabled = true;
             tbDonationMsg.Enabled = true;
@@ -226,6 +250,11 @@ namespace CSharpClient
 
                 StreamlabsConnect(settings.Token);
                 await TTSServerConnect(settings.NameOrIP, settings.Port).ConfigureAwait(true);
+
+                _ctsProducerTask = new CancellationTokenSource();
+                _ctsConsumerTask = new CancellationTokenSource();
+                _producerTask = Task.Run(ProducerLoop, _ctsProducerTask.Token);
+                _consumerTask = Task.Run(ConsumerLoop, _ctsConsumerTask.Token);
             }
         }
 
@@ -246,6 +275,10 @@ namespace CSharpClient
                 settings.Sigma = tbSigma.Text;
 
                 _jsettings.SaveSettings();
+
+                _ctsProducerTask.Cancel();
+                _ctsConsumerTask.Cancel();
+
                 task.Wait();
             }
         }
