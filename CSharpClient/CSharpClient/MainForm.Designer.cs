@@ -34,7 +34,7 @@
             this.btnSpeak = new System.Windows.Forms.Button();
             this.tabControl = new System.Windows.Forms.TabControl();
             this.tabTTS = new System.Windows.Forms.TabPage();
-            this.lblDonationMsg = new System.Windows.Forms.Label();
+            this.lblDonationInfo = new System.Windows.Forms.Label();
             this.tabOptions = new System.Windows.Forms.TabPage();
             this.gbAudio = new System.Windows.Forms.GroupBox();
             this.btnAudioApply = new System.Windows.Forms.Button();
@@ -62,6 +62,12 @@
             this.statusLblStreamlabs = new System.Windows.Forms.ToolStripStatusLabel();
             this.statusLblTTSServer = new System.Windows.Forms.ToolStripStatusLabel();
             this.backWorker = new System.ComponentModel.BackgroundWorker();
+            this.lblDonationTime = new System.Windows.Forms.Label();
+            this.lblDonationTimeSet = new System.Windows.Forms.Label();
+            this.lblDonationFrom = new System.Windows.Forms.Label();
+            this.lblDonationFromSet = new System.Windows.Forms.Label();
+            this.lblDonationAmount = new System.Windows.Forms.Label();
+            this.lblDonationAmountSet = new System.Windows.Forms.Label();
             this.tabControl.SuspendLayout();
             this.tabTTS.SuspendLayout();
             this.tabOptions.SuspendLayout();
@@ -75,9 +81,10 @@
             // tbDonationMsg
             // 
             this.tbDonationMsg.Location = new System.Drawing.Point(6, 41);
+            this.tbDonationMsg.MaxLength = 300;
             this.tbDonationMsg.Multiline = true;
             this.tbDonationMsg.Name = "tbDonationMsg";
-            this.tbDonationMsg.Size = new System.Drawing.Size(514, 194);
+            this.tbDonationMsg.Size = new System.Drawing.Size(514, 129);
             this.tbDonationMsg.TabIndex = 0;
             // 
             // btnSkip
@@ -116,7 +123,13 @@
             // 
             // tabTTS
             // 
-            this.tabTTS.Controls.Add(this.lblDonationMsg);
+            this.tabTTS.Controls.Add(this.lblDonationAmountSet);
+            this.tabTTS.Controls.Add(this.lblDonationAmount);
+            this.tabTTS.Controls.Add(this.lblDonationFromSet);
+            this.tabTTS.Controls.Add(this.lblDonationFrom);
+            this.tabTTS.Controls.Add(this.lblDonationTimeSet);
+            this.tabTTS.Controls.Add(this.lblDonationTime);
+            this.tabTTS.Controls.Add(this.lblDonationInfo);
             this.tabTTS.Controls.Add(this.btnSpeak);
             this.tabTTS.Controls.Add(this.tbDonationMsg);
             this.tabTTS.Controls.Add(this.btnSkip);
@@ -128,14 +141,14 @@
             this.tabTTS.Text = "TTS";
             this.tabTTS.UseVisualStyleBackColor = true;
             // 
-            // lblDonationMsg
+            // lblDonationInfo
             // 
-            this.lblDonationMsg.AutoSize = true;
-            this.lblDonationMsg.Location = new System.Drawing.Point(8, 13);
-            this.lblDonationMsg.Name = "lblDonationMsg";
-            this.lblDonationMsg.Size = new System.Drawing.Size(111, 15);
-            this.lblDonationMsg.TabIndex = 3;
-            this.lblDonationMsg.Text = "Donation message";
+            this.lblDonationInfo.AutoSize = true;
+            this.lblDonationInfo.Location = new System.Drawing.Point(3, 3);
+            this.lblDonationInfo.Name = "lblDonationInfo";
+            this.lblDonationInfo.Size = new System.Drawing.Size(80, 15);
+            this.lblDonationInfo.TabIndex = 3;
+            this.lblDonationInfo.Text = "Donation info";
             // 
             // tabOptions
             // 
@@ -169,6 +182,7 @@
             // 
             // btnAudioApply
             // 
+            this.btnAudioApply.Enabled = false;
             this.btnAudioApply.Location = new System.Drawing.Point(68, 75);
             this.btnAudioApply.Name = "btnAudioApply";
             this.btnAudioApply.Size = new System.Drawing.Size(75, 23);
@@ -425,6 +439,52 @@
             // 
             this.backWorker.WorkerSupportsCancellation = true;
             // 
+            // lblDonationTime
+            // 
+            this.lblDonationTime.Location = new System.Drawing.Point(3, 23);
+            this.lblDonationTime.Name = "lblDonationTime";
+            this.lblDonationTime.Size = new System.Drawing.Size(38, 13);
+            this.lblDonationTime.TabIndex = 4;
+            this.lblDonationTime.Text = "Time:";
+            // 
+            // lblDonationTimeSet
+            // 
+            this.lblDonationTimeSet.Location = new System.Drawing.Point(37, 23);
+            this.lblDonationTimeSet.Name = "lblDonationTimeSet";
+            this.lblDonationTimeSet.Size = new System.Drawing.Size(56, 13);
+            this.lblDonationTimeSet.TabIndex = 5;
+            // 
+            // lblDonationFrom
+            // 
+            this.lblDonationFrom.Location = new System.Drawing.Point(222, 23);
+            this.lblDonationFrom.Name = "lblDonationFrom";
+            this.lblDonationFrom.Size = new System.Drawing.Size(41, 13);
+            this.lblDonationFrom.TabIndex = 6;
+            this.lblDonationFrom.Text = "From:";
+            // 
+            // lblDonationFromSet
+            // 
+            this.lblDonationFromSet.Location = new System.Drawing.Point(259, 23);
+            this.lblDonationFromSet.Name = "lblDonationFromSet";
+            this.lblDonationFromSet.Size = new System.Drawing.Size(261, 15);
+            this.lblDonationFromSet.TabIndex = 7;
+            // 
+            // lblDonationAmount
+            // 
+            this.lblDonationAmount.AutoSize = true;
+            this.lblDonationAmount.Location = new System.Drawing.Point(99, 23);
+            this.lblDonationAmount.Name = "lblDonationAmount";
+            this.lblDonationAmount.Size = new System.Drawing.Size(52, 15);
+            this.lblDonationAmount.TabIndex = 8;
+            this.lblDonationAmount.Text = "Amount:";
+            // 
+            // lblDonationAmountSet
+            // 
+            this.lblDonationAmountSet.Location = new System.Drawing.Point(146, 23);
+            this.lblDonationAmountSet.Name = "lblDonationAmountSet";
+            this.lblDonationAmountSet.Size = new System.Drawing.Size(70, 13);
+            this.lblDonationAmountSet.TabIndex = 9;
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -466,7 +526,7 @@
         private System.Windows.Forms.TabPage tabTTS;
         private System.Windows.Forms.TabPage tabOptions;
         private System.Windows.Forms.TextBox tbStreamlabsToken;
-        private System.Windows.Forms.Label lblDonationMsg;
+        private System.Windows.Forms.Label lblDonationInfo;
         private System.Windows.Forms.Button btnDisconnectStreamlabs;
         private System.Windows.Forms.Button btnConnectStreamlabs;
         private System.Windows.Forms.Label lblStreamlabsToken;
@@ -492,5 +552,11 @@
         private System.Windows.Forms.TextBox tbTTSServerPort;
         private System.Windows.Forms.Button btnAudioApply;
         private System.ComponentModel.BackgroundWorker backWorker;
+        private System.Windows.Forms.Label lblDonationAmountSet;
+        private System.Windows.Forms.Label lblDonationAmount;
+        private System.Windows.Forms.Label lblDonationFromSet;
+        private System.Windows.Forms.Label lblDonationFrom;
+        private System.Windows.Forms.Label lblDonationTimeSet;
+        private System.Windows.Forms.Label lblDonationTime;
     }
 }
