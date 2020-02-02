@@ -1,6 +1,6 @@
 # Chapaefka
 
-This is my implementation of Text To Speech service, wich is ment to be used by streamers for voicing donations.
+This is my implementation of Text To Speech service, which is meant to be used by streamers for voicing donations.
 
 ## TTS Server
 Is a simple python server scirpt that recieves text, converts it to audio and send it to TTS Client. It's based on [nvidia tacotron2 implementation](https://github.com/NVIDIA/tacotron2)
