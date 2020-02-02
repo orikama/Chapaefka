@@ -1,11 +1,10 @@
 ./myfolder/VOICE/07-024.wav|We can't let it continue.
 ./myfolder/VOICE/08-001.wav|My fellow Americans, at this holy time of the year, families across our nation gather in homes, churches, and synagogues to light candles and to praise God.
-./myfolder/VOICE/08-006.wav|Almost three thousand years ago, the prophet Isiah wrote, "Darkness covers the Earth, but the Lord rises upon you, and his glory appears over you, for the Lord will be your everlasting light".
 ./myfolder/VOICE/10-025.wav|God bless you.
 ./myfolder/VOICE/15-008.wav|They're no good.
 ./myfolder/VOICE/19-008.wav|First, we will cut taxes on all Working American Families.
 ./myfolder/VOICE/34-006.wav|At this unprecedented summit, we opened a new center to combat extremist ideology, launched a task force to block funding for terrorists, and agreed to a massive economic development deal that will create hundreds of thousands of new jobs in the United States.
-./myfolder/VOICE/39-003.wav|You asked the people of Michigan; you asked the people of Ohio; you can ask the people of Pennsylvania. See what's happening.
-./myfolder/VOICE/48-004.wav|This week I had the privilege of visiting The Nation Museum of African American history and culture right here in Washington D.C.
-./myfolder/VOICE/50-014.wav|Every hour of every day my administration is focused on creating jobs for our people and I mean good jobs, better jobs, higher paying jobs that's our mission.
+./myfolder/VOICE/39-003.wav|You asked the people of Michigan, you asked the people of Ohio you can ask the people of Pennsylvania See what's happening.
+./myfolder/VOICE/48-004.wav|This week I had the privilege of visiting The Nation Museum of African American history and culture right here in Washington DC
 ./myfolder/VOICE/50-015.wav|This week I also met with Sheriffs and police chiefs from across the country
+./myfolder/VOICE/53-305.wav|have you partake in our agricultural product and digital is a real honor for me so thank you very much for coming all this distance and to be here And
