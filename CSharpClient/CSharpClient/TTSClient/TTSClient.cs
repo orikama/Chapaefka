@@ -136,7 +136,6 @@ namespace CSharpClient.TTSServerSocket
             if (_wavBufferBytesRented + WavSecondSize * 20 <= WavBufferSize)
             {
                 _bufferIsFull = false;
-                //FreeSpaceInBuffer?.Invoke();
             }
         }
 

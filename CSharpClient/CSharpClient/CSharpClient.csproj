@@ -88,7 +88,8 @@
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamlabsClient.cs" />
-    <Compile Include="TTSClient.cs" />
+    <Compile Include="TTSClient\SocketTPL.cs" />
+    <Compile Include="TTSClient\TTSClient.cs" />
     <Compile Include="WavPlayer.cs" />
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
